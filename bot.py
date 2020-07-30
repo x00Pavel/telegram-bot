@@ -15,7 +15,8 @@ TOKEN = "1240223103:AAGgnXuMhmI9n4muq3CW32IYXNzM_O0o0Mw"
 def start(update, context):
     """Send a message when the command /start is issued."""
     update.message.reply_text('Hi!')
-
+    print(context)
+    
 def help(update, context):
     """Send a message when the command /help is issued."""
     update.message.reply_text('Help!')
