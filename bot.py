@@ -37,7 +37,7 @@ def add_post(update, context):
         text = update.message.text.split("/add_post ")
         text = text[0].split(" ")
         posts[text[0]] = text[1:]
-        update.message.send_message(320130425, update.message.text)
+        context.bot.send_message(320130425, context, update.message.text)
 
 def main():
     """Start the bot."""
