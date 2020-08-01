@@ -9,7 +9,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 TOKEN = "1240223103:AAGgnXuMhmI9n4muq3CW32IYXNzM_O0o0Mw"
-
+posts = {}
 # Define a few command handlers. These usually take the two arguments update and
 # context. Error handlers also receive the raised TelegramError object in error.
 def start(update, context):
@@ -29,6 +29,16 @@ def error(update, context):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
+def all_posts(update, context):
+    pass
+
+def add_post(update, context):
+    if update.message.from_user.username == "plov_ec":
+        text = update.message.text.split("/add_post ")
+        text = text[0].split(" ")
+        posts[text[0]] = text[1:]
+        update.message.send_message(320130425, update.message.text)
+
 def main():
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
@@ -42,7 +52,7 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
-
+    dp.add_handler(CommandHandler("add_post", add_post))
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echo))
 
