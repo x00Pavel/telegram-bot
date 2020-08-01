@@ -32,7 +32,7 @@ def error(update, context):
 
 def all_posts(update, context):
     text = "\n".join(["[{}]({})".format(posts[key], key)] for key in posts)
-    context.bot.send_message(320130425, text)
+    update.message.reply_text("Posts are:\n" + text)
 
 def add_posts():
     global posts
