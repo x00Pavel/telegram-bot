@@ -44,7 +44,7 @@ def add_post(update, context):
     with open("./posts.json", "r") as f:
         data = json.load(f)
     data["posts"].append(["link", "description"])
-    update.message.reply_text("Posts are:\n" + data)
+    update.message.reply_text("Posts are:\n" + str(data))
     with open("./posts.json", "w") as f:
         json.dump(data, f)
 
