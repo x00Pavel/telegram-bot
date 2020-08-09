@@ -57,7 +57,7 @@ if "HEROKU" in list(os.environ.keys()):
         bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
         return "!", 200
     
-    @server.route("/")
+    @server.route(f"/{TOKEN}", methods=['POST'])
     def webhook():
         bot.remove_webhook()
         bot.set_webhook(url=f'https://morning-beach-95188.herokuapp.com/bot') # этот url нужно заменить на url вашего Хероку приложения
