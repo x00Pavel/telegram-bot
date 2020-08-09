@@ -39,19 +39,18 @@ def all_posts(update, context):
     update.message.reply_text("Posts are:\n" + text)
             
 
-def add_posts():
-    global posts
+def add_post():
+    data = []
     with open("./posts.json", "r") as f:
-        posts = json.load(f)
-    # if update.message.from_user.username == "plov_ec":
-    #     text = update.message.text.split("/add_post ")
-    #     text = text[0].split(" ")
-    #     posts[text[0]] = text[1:]
-    #     context.bot.send_message(320130425, context, update.message.text)
+        data = json.load(f)
+    data["posts"].append(["link", "description"])
+
+    with open("./posts.json", "w") as f:
+        json.dump(data, f)
 
 def main():
     """Start the bot."""
-    add_posts()
+    # add_post()
     # Create the Updater and pass it your bot's token.
     # Make sure to set use_context=True to use the new context based callbacks
     # Post version 12 this will no longer be necessary
@@ -64,6 +63,7 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("all_posts", all_posts))
+    dp.add_handler(CommandHandler("add_post", add_post))
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echo))
 
