@@ -31,8 +31,13 @@ def error(update, context):
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 def all_posts(update, context):
-    text = "\n".join(["[{}]({})".format(posts[key], key)] for key in posts)
+    text = ""
+    with open("./posts.json", "r") as f:
+        data = json.load(f)
+        for post in data["posts"]:
+            text = text + f"{post[0]} - {post[1]}\n"
     update.message.reply_text("Posts are:\n" + text)
+            
 
 def add_posts():
     global posts
