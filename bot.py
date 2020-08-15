@@ -8,6 +8,7 @@ import boto3
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 bot = telebot.TeleBot(TOKEN)
 
+
 s3 = boto3.client('s3')
 BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 file_name = "posts.json"
