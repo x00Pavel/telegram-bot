@@ -8,7 +8,6 @@ import boto3
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 bot = telebot.TeleBot(TOKEN)
 
-
 s3 = boto3.client('s3')
 BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 file_name = "posts.json"
@@ -19,13 +18,7 @@ def check_bot(message):
         return False
     return True
 
-
-@bot.message_handler(commands=["start"])
-def start(message):
-    bot.send_message(message.chat.id, f"Hello {message.chat.username}")
-
-
-@bot.message_handler(commands=["help"])
+@bot.message_handler(commands=["start", "help"])
 def help(message):
     """Send a message when the command /help is issued."""
     text = f"""
@@ -76,27 +69,26 @@ def add_post(message):
         bot.send_message(message.chat.id, f"Sorry, {message.chat.username}, you can't add posts")
 
 
-@bot.message_handler(commands=["reminder"])
-def reminder(message):
-    text = message.chat.text 
+# @bot.message_handler(commands=["reminder"])
+# def reminder(message):
+#     text = message.chat.text 
 
 
-
-if "HEROKU" in list(os.environ.keys()):
+if int(os.environ["HEROKU"]) == 1:
     logger = telebot.logger
     telebot.logger.setLevel(logging.DEBUG)
 
     server = Flask(__name__)
-    @server.route("/bot", methods=['POST'])
+    @server.route('/' + TOKEN, methods=['POST'])
     def getMessage():
         bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
         return "!", 200
-    
-    @server.route(f"/{TOKEN}", methods=['POST'])
-    def webhook():
-        bot.remove_webhook()
-        bot.set_webhook(url=f'https://morning-beach-95188.herokuapp.com/bot') # этот url нужно заменить на url вашего Хероку приложения
-        return "?", 200
+
+    # @server.route("/")
+    # def webhook():
+    bot.remove_webhook()
+    bot.set_webhook(url=f'https://morning-beach-95188.herokuapp.com/{TOKEN}') # этот url нужно заменить на url вашего Хероку приложения
+        # return "?", 200
     server.run(host="0.0.0.0", port=os.environ.get('PORT', 80))
 else:
     bot.remove_webhook()
