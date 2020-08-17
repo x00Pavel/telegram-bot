@@ -18,6 +18,7 @@ def check_bot(message):
         return False
     return True
 
+
 @bot.message_handler(commands=["start", "help"])
 def help(message):
     """Send a message when the command /help is issued."""
@@ -44,7 +45,7 @@ def all_posts(message):
         data = json.load(f)
         for post in data["posts"]:
             text = text + f"{post[0]} - {post[1]}\n"
-    bot.send_message(message.chat.id, "Posts are:\n" + text)
+    bot.send_message(message.chat.id, "All posts:\n" + text)
 
         
 @bot.message_handler(commands=["add_post"])
@@ -58,7 +59,7 @@ def add_post(message):
         # Parse message -> insert to file -> upload to S3
         with open(file_name, "w+") as f:
             data = json.load(f)
-            words = message.chat.text.split("/add_message").split("|")
+            words = message.text.split("/add_post ").split("|")
             data["posts"].append([words[0], words[1]])
             json.dump(data, f)
 
@@ -66,15 +67,27 @@ def add_post(message):
             s3.upload_fileobj(f, BUCKET_NAME, file_name)
 
     else:
-        bot.send_message(message.chat.id, f"Sorry, {message.chat.username}, you can't add posts")
+        bot.send_message(message.chat.id, 
+        f"Sorry, {message.chat.username}, you can't add posts")
 
 
-# @bot.message_handler(commands=["reminder"])
-# def reminder(message):
-#     text = message.chat.text 
+@bot.message_handler(commands=["idea"])
+def idea(message):
+    file_name = "ideas.txt"
+    if not os.path.exists(file_name):
+        with open(file_name, "wb") as f:
+            s3.download_fileobj(BUCKET_NAME, file_name, f)
+
+    # Parse message -> insert to file -> upload to S3
+    with open(file_name, "a+") as f:
+        words = message.text.split("/idea ")[1]
+        f.write(f"From {message.chat.username}: {words}\n\n")
+
+    with open(file_name, "rb") as f:
+        s3.upload_fileobj(f, BUCKET_NAME, file_name)
 
 
-if int(os.environ["HEROKU"]) == 1:
+if "HEROKU" in os.environ.keys():
     logger = telebot.logger
     telebot.logger.setLevel(logging.DEBUG)
 
@@ -84,11 +97,8 @@ if int(os.environ["HEROKU"]) == 1:
         bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
         return "!", 200
 
-    # @server.route("/")
-    # def webhook():
     bot.remove_webhook()
     bot.set_webhook(url=f'https://morning-beach-95188.herokuapp.com/{TOKEN}') # этот url нужно заменить на url вашего Хероку приложения
-        # return "?", 200
     server.run(host="0.0.0.0", port=os.environ.get('PORT', 80))
 else:
     bot.remove_webhook()
