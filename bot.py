@@ -1,4 +1,5 @@
 import telebot
+from telebot import types
 import os
 from flask import Flask, request
 import logging
@@ -8,6 +9,7 @@ import boto3
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 bot = telebot.TeleBot(TOKEN)
 
+my_chat_id = 320130425
 s3 = boto3.client('s3')
 BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 file_name = "posts.json"
@@ -86,6 +88,61 @@ def idea(message):
     with open(file_name, "rb") as f:
         s3.upload_fileobj(f, BUCKET_NAME, file_name)
 
+
+@bot.message_handler(commands=["help_me"])
+def help_me(message):
+    file_name = "qa.json"
+    if not os.path.exists(file_name):
+            with open(file_name, "wb") as f:
+                s3.download_fileobj(BUCKET_NAME, file_name, f)
+
+    # I don't know why, but here 'with' statement doesn't work
+    f = open(file_name, "r")
+    data = json.load(f)
+    f.close()
+    q = message.text.split("/help_me ")
+
+    if len(q) < 2:
+        bot.send_message(message.chat.id, "Repeat command with question, please")
+    else:
+        q = q[1]
+        q_id = abs(hash(q)) % (10 ** 8)
+        data["qa"].append({"id": q_id, "question": q, "answer": ""})
+
+        f = open(file_name, "w")
+        json.dump(data, f)
+        f.close()
+        with open(file_name, "rb") as f:
+            s3.upload_fileobj(f, BUCKET_NAME, file_name)
+
+        markup = types.ReplyKeyboardMarkup(row_width=2)
+
+        markup.add(
+            types.KeyboardButton("Answer"),
+            types.KeyboardButton("Send"),
+        )
+        msg = bot.send_message(my_chat_id, 
+                        f"Question from {message.from_user.username}: {q}",
+                        reply_markup=markup)
+        bot.register_next_step_handler(msg, process_step)
+
+response = ""
+def process_step(message):
+    if message.text == "Answer":
+        msg = bot.send_message(my_chat_id, "Type answer")
+        bot.register_next_step_handler(msg, process_answer)
+    elif message.text == "Send":
+        # TODO add reposnse to answer and send to user -> save user and qestion
+        pass
+
+def process_answer(message):
+    global response
+    response += message.text
+
+@bot.message_handler(commands=["answer"])
+def answer(message):
+    if message.from_user.username == "plov_ec":
+        pass
 
 if "HEROKU" in os.environ.keys():
     logger = telebot.logger
