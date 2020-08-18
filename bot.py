@@ -23,15 +23,20 @@ def check_bot(message):
 
 @bot.message_handler(commands=["start", "help"])
 def help(message):
-    """Send a message when the command /help is issued."""
+    """Send a message when the command /help or /start 
+    are sent."""
+    if message.from_user.username == "plov_ec" and \
+        message.chat.type == "private":
+        global my_chat_id
+        my_chat_id = message.chat.id
     text = f"""
-    Hello, {message.chat.username}!
-    I'm helper bot for channel t.me/vut_fit.
-    Here is my command that can help you:
-    /all_posts - to show all usefull posts in channel
-    
-    Pleas, remember, I'm still under development
-    Thanks!
+Hello, {message.chat.username}!
+I'm helper bot for channel t.me/vut_fit.
+Here is my command that can help you:
+/all_posts - to show all usefull posts in channel
+
+Pleas, remember, I'm still under development
+Thanks!
     """
     bot.send_message(message.chat.id, text)
 
@@ -107,37 +112,69 @@ def help_me(message):
     else:
         q = q[1]
         q_id = abs(hash(q)) % (10 ** 8)
-        data["qa"].append({"id": q_id, "question": q, "answer": ""})
+        # TODO search algorithm and run search of patterns in another thread
+        # Search question ID in list of all IDs
+        if q_id not in [int(i["id"]) for i in data]:
+            # If not present, then and new question entry and send my message with question
+            data["qa"].append({"id": q_id, "question": q, "answer": ""})
+            sorted(data["qa"], key=lambda i: i["id"])
 
-        f = open(file_name, "w")
-        json.dump(data, f)
-        f.close()
-        with open(file_name, "rb") as f:
-            s3.upload_fileobj(f, BUCKET_NAME, file_name)
+            f = open(file_name, "w")
+            json.dump(data, f)
+            f.close()
+            # with open(file_name, "rb") as f:
+            #     s3.upload_fileobj(f, BUCKET_NAME, file_name)
 
-        markup = types.ReplyKeyboardMarkup(row_width=2)
+            markup = types.InlineKeyboardMarkup(row_width=2)
 
-        markup.add(
-            types.KeyboardButton("Answer"),
-            types.KeyboardButton("Send"),
-        )
-        msg = bot.send_message(my_chat_id, 
-                        f"Question from {message.from_user.username}: {q}",
-                        reply_markup=markup)
-        bot.register_next_step_handler(msg, process_step)
+            cb_data_send = f"send#{message.chat.id}" 
+            if message.chat.type != "private":
+                cb_data_send += f"|{message.from_user.username}"
 
-response = ""
-def process_step(message):
-    if message.text == "Answer":
-        msg = bot.send_message(my_chat_id, "Type answer")
-        bot.register_next_step_handler(msg, process_answer)
-    elif message.text == "Send":
-        # TODO add reposnse to answer and send to user -> save user and qestion
+            markup.add(
+                types.InlineKeyboardButton("Answer", callback_data=f"answer#{q_id}"),
+                types.InlineKeyboardButton("Send", 
+                callback_data=cb_data_send),
+            )
+            bot.send_message(my_chat_id, 
+                            f"Chat ID: {message.chat.id}\nQuestion from {message.from_user.username}: {q}",
+                            reply_markup=markup)
+            bot.reply_to(message, "Thanks for your question. I will answer you as soon as possible")
+
+        else:
+            # If ID exists, then send corresponding answer
+            answer = [i["answer"] for i in data["qa"] if int(i["id"]) == q_id][0]
+            bot.send_message(message.chat.id, answer)
+
+
+@bot.callback_query_handler(func=lambda call: True)
+def process_step(call, *args):
+    # Args is used for returning answer from process_answer function
+    try:
+        step, data = call.data.split("#")
+        if step == "answer":
+            msg = bot.send_message(my_chat_id, "Type answer")
+            bot.register_next_step_handler(msg, process_answer, int(call.data))
+        elif step == "send":
+            # Split data to extract chat_id and username
+            data = data.split("|")
+            if len(data) == 1:
+                bot.send_message(int(data[0]), f"Hi! Here is answer on your question: {args[0]}")
+            else:
+                bot.send_message(int(data[0]), f"Hi, @{data[1]}! Here is answer on your question: {args[0]}")
+    except ValueError:
         pass
 
-def process_answer(message):
-    global response
-    response += message.text
+
+def process_answer(message, q_id):
+    with open("qa.json", "w+") as f:
+        data = json.load(f)
+        entry = [int(entry["id"]) for entry in data["qa"] if int(entry["id"]) == q_id][0]
+        index = data["qa"].index(entry)
+        entry["answer"] = message.text
+        data["qa"][index] = entry
+        json.dump(data, f)
+    bot.register_next_step_handler(message, process_step, message.text)
 
 @bot.message_handler(commands=["answer"])
 def answer(message):
@@ -155,7 +192,7 @@ if "HEROKU" in os.environ.keys():
         return "!", 200
 
     bot.remove_webhook()
-    bot.set_webhook(url=f'https://morning-beach-95188.herokuapp.com/{TOKEN}') # этот url нужно заменить на url вашего Хероку приложения
+    bot.set_webhook(url=f'https://morning-beach-95188.herokuapp.com/{TOKEN}')
     server.run(host="0.0.0.0", port=os.environ.get('PORT', 80))
 else:
     bot.remove_webhook()
