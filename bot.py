@@ -6,13 +6,20 @@ import logging
 import json
 import boto3
 
-TOKEN = os.environ["TELEGRAM_TOKEN"]
-bot = telebot.TeleBot(TOKEN)
 
-my_chat_id = 320130425
-s3 = boto3.client('s3')
 BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
-file_name = "posts.json"
+ENV = os.environ["ENV"] if "ENV" in os.environ.keys() else "stage"
+TOKEN = os.environ["TELEGRAM_TOKEN"]
+WEBHOOK_URL = os.environ["WEBHOOK_URL"] if "WEBHOOK_URL" in os.environ.keys() else None
+
+
+bot = telebot.TeleBot(TOKEN)
+my_chat_id = 320130425 # for sending some messages to me
+s3 = boto3.client('s3')
+
+posts_file = f"/{ENV}/posts.json"
+idea_file = f"/{ENV}/ideas.txt"
+qa_file = f"/{ENV}/qa.json"
 
 def check_bot(message):
     if message.from_user.is_bot:
@@ -44,11 +51,11 @@ Thanks!
 @bot.message_handler(commands=["all_posts"])
 def all_posts(message):
     text = ""
-    if not os.path.exists(file_name):
-        with open(file_name, "wb") as f:
-            s3.download_fileobj(BUCKET_NAME, file_name, f)
+    if not os.path.exists(posts_file):
+        with open(posts_file, "wb") as f:
+            s3.download_fileobj(BUCKET_NAME, posts_file, f)
         
-    with open(file_name, "r") as f:
+    with open(posts_file, "r") as f:
         data = json.load(f)
         for post in data["posts"]:
             text = text + f"{post[0]} - {post[1]}\n"
@@ -59,19 +66,19 @@ def all_posts(message):
 def add_post(message):
     if message.chat.username == "plov_ec":
         # Download file if it does not exist - only in first use after restart
-        if not os.path.exists(file_name):
-            with open(file_name, "wb") as f:
-                s3.download_fileobj(BUCKET_NAME, file_name, f)
+        if not os.path.exists(posts_file):
+            with open(posts_file, "wb") as f:
+                s3.download_fileobj(BUCKET_NAME, posts_file, f)
 
         # Parse message -> insert to file -> upload to S3
-        with open(file_name, "w+") as f:
+        with open(posts_file, "w+") as f:
             data = json.load(f)
             words = message.text.split("/add_post ").split("|")
             data["posts"].append([words[0], words[1]])
             json.dump(data, f)
 
-        with open(file_name, "rb") as f:
-            s3.upload_fileobj(f, BUCKET_NAME, file_name)
+        with open(posts_file, "rb") as f:
+            s3.upload_fileobj(f, BUCKET_NAME, posts_file)
 
     else:
         bot.send_message(message.chat.id, 
@@ -80,29 +87,28 @@ def add_post(message):
 
 @bot.message_handler(commands=["idea"])
 def idea(message):
-    file_name = "ideas.txt"
-    if not os.path.exists(file_name):
-        with open(file_name, "wb") as f:
-            s3.download_fileobj(BUCKET_NAME, file_name, f)
+    # If user have any idea how to improve or what he want to add to bot 
+    if not os.path.exists(idea_file):
+        with open(idea_file, "wb") as f:
+            s3.download_fileobj(BUCKET_NAME, idea_file, f)
 
     # Parse message -> insert to file -> upload to S3
-    with open(file_name, "a+") as f:
+    with open(idea_file, "a+") as f:
         words = message.text.split("/idea ")[1]
         f.write(f"From {message.chat.username}: {words}\n\n")
 
-    with open(file_name, "rb") as f:
-        s3.upload_fileobj(f, BUCKET_NAME, file_name)
+    with open(idea_file, "rb") as f:
+        s3.upload_fileobj(f, BUCKET_NAME, idea_file)
 
 
 @bot.message_handler(commands=["help_me"])
 def help_me(message):
-    file_name = "qa.json"
-    if not os.path.exists(file_name):
-            with open(file_name, "wb") as f:
-                s3.download_fileobj(BUCKET_NAME, file_name, f)
+    if not os.path.exists(qa_file):
+            with open(qa_file, "wb") as f:
+                s3.download_fileobj(BUCKET_NAME, qa_file, f)
 
     # I don't know why, but here 'with' statement doesn't work
-    f = open(file_name, "r")
+    f = open(qa_file, "r")
     data = json.load(f)
     f.close()
     q = message.text.split("/help_me ")
@@ -114,30 +120,33 @@ def help_me(message):
         q_id = abs(hash(q)) % (10 ** 8)
         # TODO search algorithm and run search of patterns in another thread
         # Search question ID in list of all IDs
-        if q_id not in [int(i["id"]) for i in data]:
+        if q_id not in [int(i["id"]) for i in data["qa"]]:
             # If not present, then and new question entry and send my message with question
             data["qa"].append({"id": q_id, "question": q, "answer": ""})
             sorted(data["qa"], key=lambda i: i["id"])
 
-            f = open(file_name, "w")
+            f = open(qa_file, "w")
             json.dump(data, f)
             f.close()
-            # with open(file_name, "rb") as f:
-            #     s3.upload_fileobj(f, BUCKET_NAME, file_name)
+            # with open(qa_file, "rb") as f:
+            #     s3.upload_fileobj(f, BUCKET_NAME, qa_file)
 
             markup = types.InlineKeyboardMarkup(row_width=2)
 
             cb_data_send = f"send#{message.chat.id}" 
+            # If message is not from private chat, then username would be saved
+            # to ping user in future
             if message.chat.type != "private":
                 cb_data_send += f"|{message.from_user.username}"
 
             markup.add(
-                types.InlineKeyboardButton("Answer", callback_data=f"answer#{q_id}"),
+                types.InlineKeyboardButton("Answer", 
+                                           callback_data=f"answer#{q_id}"),
                 types.InlineKeyboardButton("Send", 
-                callback_data=cb_data_send),
+                                           callback_data=cb_data_send),
             )
             bot.send_message(my_chat_id, 
-                            f"Chat ID: {message.chat.id}\nQuestion from {message.from_user.username}: {q}",
+                            f"Question from {message.from_user.username}: {q}",
                             reply_markup=markup)
             bot.reply_to(message, "Thanks for your question. I will answer you as soon as possible")
 
@@ -167,7 +176,7 @@ def process_step(call, *args):
 
 
 def process_answer(message, q_id):
-    with open("qa.json", "w+") as f:
+    with open(qa_file, "w+") as f:
         data = json.load(f)
         entry = [int(entry["id"]) for entry in data["qa"] if int(entry["id"]) == q_id][0]
         index = data["qa"].index(entry)
@@ -176,12 +185,11 @@ def process_answer(message, q_id):
         json.dump(data, f)
     bot.register_next_step_handler(message, process_step, message.text)
 
-@bot.message_handler(commands=["answer"])
-def answer(message):
-    if message.from_user.username == "plov_ec":
-        pass
 
-if "HEROKU" in os.environ.keys():
+if "LOCAL" in os.environ.keys():
+    bot.remove_webhook()
+    bot.polling()
+else:
     logger = telebot.logger
     telebot.logger.setLevel(logging.DEBUG)
 
@@ -192,8 +200,5 @@ if "HEROKU" in os.environ.keys():
         return "!", 200
 
     bot.remove_webhook()
-    bot.set_webhook(url=f'https://morning-beach-95188.herokuapp.com/{TOKEN}')
+    bot.set_webhook(url=f'{WEBHOOK_URL}/{TOKEN}')
     server.run(host="0.0.0.0", port=os.environ.get('PORT', 80))
-else:
-    bot.remove_webhook()
-    bot.polling()
