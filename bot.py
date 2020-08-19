@@ -17,9 +17,9 @@ bot = telebot.TeleBot(TOKEN)
 my_chat_id = 320130425 # for sending some messages to me
 s3 = boto3.client('s3')
 
-posts_file = f"/{ENV}/posts.json"
-idea_file = f"/{ENV}/ideas.txt"
-qa_file = f"/{ENV}/qa.json"
+posts_file = f"posts.json"
+idea_file = f"ideas.txt"
+qa_file = f"qa.json"
 
 def check_bot(message):
     if message.from_user.is_bot:
@@ -53,7 +53,7 @@ def all_posts(message):
     text = ""
     if not os.path.exists(posts_file):
         with open(posts_file, "wb") as f:
-            s3.download_fileobj(BUCKET_NAME, posts_file, f)
+            s3.download_fileobj(BUCKET_NAME, f"{ENV}/{posts_file}", f)
         
     with open(posts_file, "r") as f:
         data = json.load(f)
