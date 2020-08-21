@@ -5,7 +5,7 @@ from flask import Flask, request
 import logging
 import json
 import boto3
-
+import hashlib
 
 BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
 ENV = os.environ["ENV"] if "ENV" in os.environ.keys() else "stage"
@@ -105,35 +105,45 @@ def idea(message):
 def help_me(message):
     if not os.path.exists(qa_file):
             with open(qa_file, "wb") as f:
-                s3.download_fileobj(BUCKET_NAME, qa_file, f)
+                s3.download_fileobj(BUCKET_NAME, f"{ENV}/{qa_file}", f)
 
     # I don't know why, but here 'with' statement doesn't work
     f = open(qa_file, "r")
-    data = json.load(f)
-    f.close()
+    # with open(qa_file, "r"):
+    #     data = json.load(f)
+    # f.close()
     q = message.text.split("/help_me ")
 
     if len(q) < 2:
         bot.send_message(message.chat.id, "Repeat command with question, please")
     else:
         q = q[1]
-        q_id = abs(hash(q)) % (10 ** 8)
+        hash_object = hashlib.sha1(bytes(q, "utf-8"))
+        q_id = hash_object.hexdigest()
+        
         # TODO search algorithm and run search of patterns in another thread
         # Search question ID in list of all IDs
-        if q_id not in [int(i["id"]) for i in data["qa"]]:
-            # If not present, then and new question entry and send my message with question
-            data["qa"].append({"id": q_id, "question": q, "answer": ""})
-            sorted(data["qa"], key=lambda i: i["id"])
+        data = []
+        with open(qa_file, "r") as f:
+            data = json.load(f)
 
-            f = open(qa_file, "w")
-            json.dump(data, f)
-            f.close()
+        if q_id not in [i["id"] for i in data["qa"]]:
+            # If not present, then and new question entry and send my message with question
+            data["qa"].append({"id": q_id, "q": q, "a": ""})
+            # sorted(data["qa"], key=lambda i: i["id"])
+            print(data)
+            # exit()
+            with open(qa_file, "w") as f:
+                json.dump(data, f)
+
+            # f = open(qa_file, "w")
+            # f.close()
             # with open(qa_file, "rb") as f:
-            #     s3.upload_fileobj(f, BUCKET_NAME, qa_file)
+            #     s3.upload_fileobj(f, BUCKET_NAME, f"{ENV}/{qa_file}")
 
             markup = types.InlineKeyboardMarkup(row_width=2)
 
-            cb_data_send = f"send#{message.chat.id}" 
+            cb_data_send = f"send#{message.chat.id}|{q_id}" 
             # If message is not from private chat, then username would be saved
             # to ping user in future
             if message.chat.type != "private":
@@ -152,7 +162,7 @@ def help_me(message):
 
         else:
             # If ID exists, then send corresponding answer
-            answer = [i["answer"] for i in data["qa"] if int(i["id"]) == q_id][0]
+            answer = [i["a"] for i in data["qa"] if i["id"] == q_id][0]
             bot.send_message(message.chat.id, answer)
 
 
@@ -163,27 +173,36 @@ def process_step(call, *args):
         step, data = call.data.split("#")
         if step == "answer":
             msg = bot.send_message(my_chat_id, "Type answer")
-            bot.register_next_step_handler(msg, process_answer, int(call.data))
+            bot.register_next_step_handler(msg, lambda m: process_answer(m, data))
         elif step == "send":
             # Split data to extract chat_id and username
             data = data.split("|")
-            if len(data) == 1:
-                bot.send_message(int(data[0]), f"Hi! Here is answer on your question: {args[0]}")
+            chat_id, q_id = data[0], data[1]
+
+            with open(qa_file, "r") as f:
+                data_f = json.load(f)
+                answer = [entry["a"] for entry in data_f["qa"] if entry["id"] == q_id][0]
+
+            if len(data) == 2:
+                bot.send_message(int(chat_id), f"Hi! Here is answer on your question: {answer}")
             else:
-                bot.send_message(int(data[0]), f"Hi, @{data[1]}! Here is answer on your question: {args[0]}")
+                bot.send_message(int(chat_id), f"Hi, @{data[2]}! Here is answer on your question: {answer}")
     except ValueError:
         pass
 
 
 def process_answer(message, q_id):
-    with open(qa_file, "w+") as f:
+    with open(qa_file, "r") as f:
         data = json.load(f)
-        entry = [int(entry["id"]) for entry in data["qa"] if int(entry["id"]) == q_id][0]
-        index = data["qa"].index(entry)
-        entry["answer"] = message.text
-        data["qa"][index] = entry
+    
+    entry = [entry for entry in data["qa"] if entry["id"] == q_id][0]
+    index = data["qa"].index(entry)
+    entry["a"] = message.text
+    data["qa"][index] = entry
+    print("Data after insertion: " + str(data))
+    with open(qa_file, "w") as f:
         json.dump(data, f)
-    bot.register_next_step_handler(message, process_step, message.text)
+    # bot.register_next_step_handler(message, process_step)
 
 
 if "LOCAL" in os.environ.keys():
