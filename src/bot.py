@@ -15,7 +15,9 @@ class Bot(TeleBot):
         self.BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
         self.ENV = os.environ["ENV"] if "ENV" in os.environ.keys() else "stage"
         self.WEBHOOK_URL = (
-            os.environ["WEBHOOK_URL"] if "WEBHOOK_URL" in os.environ.keys() else None
+            os.environ["WEBHOOK_URL"]
+            if "WEBHOOK_URL" in os.environ.keys()
+            else None
         )
         self.my_chat_id = 320130425  # for sending some messages to me
         self.s3 = boto3.client("s3")
@@ -38,7 +40,11 @@ class Bot(TeleBot):
             @server.route("/" + self.TOKEN, methods=["POST"])
             def getMessage():
                 self.process_new_updates(
-                    [types.Update.de_json(request.stream.read().decode("utf-8"))]
+                    [
+                        types.Update.de_json(
+                            request.stream.read().decode("utf-8")
+                        )
+                    ]
                 )
                 return "!", 200
 
@@ -55,15 +61,19 @@ class Bot(TeleBot):
     def update_data(self, file_name, data):
         # If there is json file, so it should be overwritten, but in case of
         with open(file_name, "w") as f:
-            dump(data, f)
+            dump(data, f, ensure_ascii=False)
 
         with open(file_name, "rb") as f:
-            self.s3.upload_fileobj(f, self.BUCKET_NAME, f"{self.ENV}/{file_name}")
+            self.s3.upload_fileobj(
+                f, self.BUCKET_NAME, f"{self.ENV}/{file_name}"
+            )
 
     def get_data(self, file_name) -> list:
         if not os.path.exists(file_name):
             with open(file_name, "wb") as f:
-                self.s3.download_fileobj(self.BUCKET_NAME, f"{self.ENV}/{file_name}", f)
+                self.s3.download_fileobj(
+                    self.BUCKET_NAME, f"{self.ENV}/{file_name}", f
+                )
 
         with open(file_name, "r") as f:
             return load(f)
