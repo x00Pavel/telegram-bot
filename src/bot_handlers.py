@@ -11,32 +11,48 @@ bot = Bot()
 
 tmp = None
 
-msg = {
-    "start": "I'm helper bot for channel t.me/vut_fit."
+msgs = {
+    "start": "I'm helper bot for channel t.me/vut_fit. "
     "Here is my command that can help you:",
     "help": "/all_posts - to show all usefull posts in channel\n"
-    "/help_me <question> - if you have any question, please use this "
+    "/help_me question - if you have any question, please use this "
     "command. It is needed to create bank of questions for every one. Thank:)\n"
-    "/idea <any text> - if you have any idea of new fiture or "
+    "/idea any idea - if you have any idea of new fiture or "
     "improvement use this command",
 }
 
 
+@bot.message_handler(func=lambda m: True, content_types=["new_chat_members"])
+def on_user_joins(msg):
+    for member in msg.new_chat_members:
+        start(msg)
+
+
 @bot.message_handler(commands=["start"])
-def start(message):
-    """Send a message when the command /help or /start are sent."""
-    if (
-        message.from_user.username == "plov_ec"
-        and message.chat.type == "private"
-    ):
-        bot.my_chat_id = message.chat.id
-    text = f"Hello, {message.chat.username}!\n{msg['start']}\n{msg['help']}"
-    bot.send_message(message.chat.id, text)
+def start(msg):
+    """
+    Send a message when the command /help or /start are sent or on the
+    new member joining.
+    """
+    user = msg.from_user
+    if user.username == "plov_ec" and msg.chat.type == "private":
+        bot.my_chat_id = msg.chat.id
+
+    # Create full name with username for chats
+    name = user.first_name
+    if hasattr(user, "last_name") and user.last_name is not None:
+        name = name + f" {user.last_name}"
+
+    if hasattr(user, "username") and user.username is not None:
+        name = name + f" (@{user.username})"
+
+    text = f"Hello, {name}!\n{msgs['start']}\n{msgs['help']}"
+    bot.reply_to(msg, text)
 
 
 @bot.message_handler(commands=["help"])
 def help(message):
-    bot.send_message(message.chat.id, msg["help"])
+    bot.send_message(message.chat.id, msgs["help"])
 
 
 @bot.message_handler(commands=["all_posts"])
