@@ -66,6 +66,10 @@ def all_usefull(msg):
     try:
         # Here would be raised IndexError, if there is any type
         tipe = msg.text.split(" ")[1]
+        if tipe == "стримы":
+            tipe = "streams"
+        elif tipe == "посты":
+            tipe = "posts"
         # And here would be raised KeyError, if type is incorrect
         data = bot.get_data(posts_file)[tipe]
         text = "\n".join(
