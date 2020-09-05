@@ -1,4 +1,3 @@
-
 import json
 import hashlib
 from bot import Bot
@@ -73,7 +72,8 @@ def all_usefull(msg):
             [f"{link} - {description}" for link, description in data]
         )
         bot.send_message(msg.chat.id, f"All {tipe}:\n{text}")
-    except (IndexError, KeyError):
+    except (IndexError, KeyError) as e:
+        bot.send_message(bot.my_chat_id, e)
         bot.send_message(msg.chat.id, "Invalid type")
 
 
