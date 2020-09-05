@@ -17,7 +17,7 @@ msgs = {
     "Here is my command that can help you:",
     "help": "/help - print help message\n"
     "/start - print hello message with help message\n"
-    "/all posts|streams - to show all usefull posts in channel or all streams \n"
+    "/all posts | streams - to show all usefull posts in channel or all streams \n"
     "/help_me question - if you have any question, please use this "
     "command. It is needed to create bank of questions for every one. Thank:)\n"
     "/idea any idea - if you have any idea of new fiture or "
@@ -47,7 +47,10 @@ def start(msg):
     bot.reply_to(msg, text)
 
 
-@bot.message_handler(content_types=["new_chat_members"])
+@bot.message_handler(
+    func=lambda m: m.content_type == "new_chat_members",
+    content_types=["new_chat_members"],
+)
 def on_user_joins(msg):
     for _ in msg.new_chat_members:
         start(msg)
