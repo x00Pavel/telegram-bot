@@ -1,31 +1,29 @@
+
 import json
 import hashlib
 from bot import Bot
 from telebot import types
-import re
+
+# import re
 
 posts_file = "posts.json"
 idea_file = "ideas.txt"
 qa_file = "qa.json"
-bot = Bot()
-
+channel_id = "@vut_fit"
 tmp = None
+bot = Bot()
 
 msgs = {
     "start": "I'm helper bot for channel t.me/vut_fit. "
     "Here is my command that can help you:",
-    "help": "/all_posts - to show all usefull posts in channel\n"
+    "help": "/help - print help message\n"
+    "/start - print hello message with help message\n"
+    "/all posts | streams - to show all usefull posts in channel or all streams \n"
     "/help_me question - if you have any question, please use this "
     "command. It is needed to create bank of questions for every one. Thank:)\n"
     "/idea any idea - if you have any idea of new fiture or "
     "improvement use this command",
 }
-
-
-@bot.message_handler(func=lambda m: True, content_types=["new_chat_members"])
-def on_user_joins(msg):
-    for member in msg.new_chat_members:
-        start(msg)
 
 
 @bot.message_handler(commands=["start"])
@@ -50,45 +48,52 @@ def start(msg):
     bot.reply_to(msg, text)
 
 
+@bot.message_handler(
+    func=lambda m: m.content_type == "new_chat_members",
+    content_types=["new_chat_members"],
+)
+def on_user_joins(msg):
+    for _ in msg.new_chat_members:
+        start(msg)
+
+
 @bot.message_handler(commands=["help"])
-def help(message):
-    bot.send_message(message.chat.id, msgs["help"])
+def help_msg(msg):
+    bot.send_message(msg.chat.id, msgs["help"])
 
 
-@bot.message_handler(commands=["all_posts"])
-def all_posts(message):
-    data = bot.get_data(posts_file)
-    text = ""
-    for post in data["posts"]:
-        text = text + f"{post[0]} - {post[1]}\n"
-    bot.send_message(message.chat.id, "All posts:\n" + text)
-
-
-@bot.message_handler(command=["add_tag"])
-def add_tag(msg):
-    if msg.chat.username == "plov_ec":
-        data = bot.get_data(qa_file)
-        tags = msg.text.split("/add_post ")[0]
-        for tag in re.findall(r"([а-я]+)", tags):
-            data["tags"].append(tag)
-        bot.update_data(qa_file, data)
-    else:
-        bot.send_message(
-            msg.chat.id, f"Sorry, {msg.chat.username}, you can't add tags"
+@bot.message_handler(commands=["all"])
+def all_usefull(msg):
+    try:
+        # Here would be raised IndexError, if there is any type
+        tipe = msg.text.split(" ")[1]
+        # And here would be raised KeyError, if type is incorrect
+        data = bot.get_data(posts_file)[tipe]
+        text = "\n".join(
+            [f"{link} - {description}" for link, description in data]
         )
+        bot.send_message(msg.chat.id, f"All {tipe}:\n{text}")
+    except (IndexError, KeyError):
+        bot.send_message(msg.chat.id, "Invalid type")
 
 
-@bot.message_handler(commands=["add_post"])
-def add_post(message):
-    if message.chat.username == "plov_ec":
+@bot.message_handler(commands=["add"])
+def add_usefull(msg):
+    if msg.chat.username == "plov_ec":
         data = bot.get_data(posts_file)
-        words = message.text.split("/add_post ").split("|")
-        data["posts"].append([words[0], words[1]])
-        bot.update_data([posts_file, data])
+        tipe, link, description = [
+            s.strip() for s in msg.text.split("/add ")[1].split("|")
+        ]
+        if tipe == "posts" or tipe == "streams":
+            data[tipe].append([link, description])
+            bot.update_data(posts_file, data)
+        else:
+            bot.send_message(
+                msg.chat.id, "Incorrect type to add",
+            )
     else:
         bot.send_message(
-            message.chat.id,
-            f"Sorry, {message.chat.username}, you can't add posts",
+            msg.chat.id, f"Sorry, {msg.chat.username}, you can't add any info",
         )
 
 
@@ -98,6 +103,10 @@ def idea(message):
     data = bot.get_data(idea_file)
     idea = message.text.split("/idea ")[1]
     data["ideas"].append({"from": message.chat.username, "idea": idea})
+    bot.send_message(
+        bot.my_chat_id,
+        f"There is new idea!\nFrom: {message.chat.username}\nIdea: {idea}",
+    )
     bot.update_data(idea_file, data)
 
 
@@ -161,7 +170,6 @@ def help_me(message):
 @bot.callback_query_handler(func=lambda call: True)
 def process_step(call):
     # Args is used for returning answer from process_answer function
-
     try:
         step, data = call.data.split("#")
         if step == "answer":
@@ -192,6 +200,11 @@ def process_step(call):
                 )
     except ValueError:
         pass
+
+
+@bot.message_handler(commands=["create_post"])
+def create_post(msg):
+    bot.send_message(channel_id, "Test of sending message")
 
 
 def process_answer(msg, q_id):
