@@ -1,4 +1,3 @@
-
 import json
 import hashlib
 from bot import Bot
@@ -163,7 +162,10 @@ def help_me(message):
                 )
                 bot.reply_to(
                     message,
-                    "Thanks for your question. I will answer you as soon as possible",
+                    "Thanks for your question. I will answer you as soon as possible"
+                    "Check this [document](https://docs.google.com/document/d/1MMthqb28WVuFWmPNbWafdAHhbcds-F5DzVOquYCxaKo/edit?usp=sharing) "
+                    "if answer in your question is already there. If not, try "
+                    "to add your question to this doc. Thanks!",
                 )
 
             else:
