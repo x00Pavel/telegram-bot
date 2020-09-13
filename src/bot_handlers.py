@@ -77,7 +77,7 @@ def all_usefull(msg):
         )
         bot.send_message(msg.chat.id, f"All {tipe}:\n{text}")
     except (IndexError, KeyError) as e:
-        bot.send_message(bot.my_chat_id, e)
+        bot.send_message(bot.my_chat_id, f"Input: {msg.text}\nOutput: {e}")
         bot.send_message(msg.chat.id, "Invalid type")
 
 
