@@ -1,4 +1,3 @@
-
 import json
 import hashlib
 from bot import Bot
@@ -67,6 +66,10 @@ def all_usefull(msg):
     try:
         # Here would be raised IndexError, if there is any type
         tipe = msg.text.split(" ")[1]
+        if tipe == "стримы":
+            tipe = "streams"
+        elif tipe == "посты":
+            tipe = "posts"
         # And here would be raised KeyError, if type is incorrect
         data = bot.get_data(posts_file)[tipe]
         text = "\n".join(
@@ -74,7 +77,7 @@ def all_usefull(msg):
         )
         bot.send_message(msg.chat.id, f"All {tipe}:\n{text}")
     except (IndexError, KeyError) as e:
-        bot.send_message(bot.my_chat_id, e)
+        bot.send_message(bot.my_chat_id, f"Input: {msg.text}\nOutput: {e}")
         bot.send_message(msg.chat.id, "Invalid type")
 
 
@@ -159,7 +162,10 @@ def help_me(message):
                 )
                 bot.reply_to(
                     message,
-                    "Thanks for your question. I will answer you as soon as possible",
+                    "Thanks for your question. I will answer you as soon as possible"
+                    "Check this [document](https://docs.google.com/document/d/1MMthqb28WVuFWmPNbWafdAHhbcds-F5DzVOquYCxaKo/edit?usp=sharing) "
+                    "if answer in your question is already there. If not, try "
+                    "to add your question to this doc. Thanks!",
                 )
 
             else:
