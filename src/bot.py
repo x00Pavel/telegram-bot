@@ -76,4 +76,6 @@ class Bot(TeleBot):
                 )
 
         with open(file_name, "r") as f:
-            return load(f)
+            if file_name.endswith(".json"):
+                return load(f)
+            return f.read()
