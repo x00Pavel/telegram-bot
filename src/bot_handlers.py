@@ -24,7 +24,7 @@ msgs = {
     "Here is my command that can help you:",
     "help": "/help - print help message\n"
     "/start - print hello message with help message\n"
-    "/login course login - login into chat of correnspoding course with your login"
+    "/login course login - login into chat of correnspoding course with your login\n"
     "/all posts | streams - to show all usefull posts in channel or all streams \n"
     "/help_me question - if you have any question, please use this "
     "command. It is needed to create bank of questions for every one. Thank:)\n"
