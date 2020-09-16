@@ -20,7 +20,7 @@ msgs = {
     "If you are a student, pleas use command /login "
     "and provide your course with FIT login (example you are on the 1st "
     "course and your login xnovak01: /login 1 xnovak01). "
-    "On error or unexpected behaviour, please contact admin@plov_ec"
+    "On error or unexpected behaviour, please contact admin @plov_ec "
     "Here is my command that can help you:",
     "help": "/help - print help message\n"
     "/start - print hello message with help message\n"
