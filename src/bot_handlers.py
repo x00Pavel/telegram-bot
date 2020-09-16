@@ -13,7 +13,12 @@ channel_id = "@vut_fit"
 logins = "logins.txt"
 bot = Bot()
 
-course_chats = {"1": "-224333264", "2": "-436441135", "3": "-383480234"}
+course_chats = {
+    "1": "-1001478179680",
+    "2": "-1001229000990",
+    "3": "-1001495214504",
+}
+
 
 msgs = {
     "start": "I'm helper bot for channel t.me/vut_fit. "
@@ -66,38 +71,45 @@ def on_user_joins(msg):
 
 @bot.message_handler(commands=["login"])
 def login(m):
-    chat_id = m.chat.id
-    if m.chat.type != "private":
-        bot.send_message(
-            chat_id,
-            "You can't use this command in group chats. Please, send in to private chat with me",
-        )
-        return
-    logs = bot.get_data(logins)
     try:
-        _, course, login = m.text.split(" ")
-    except ValueError:
-        bot.send_message(
-            chat_id,
-            "Pleas provide command in following format (see help message): /login course login ",
-        )
-        return
+        chat_id = m.chat.id
+        if m.chat.type != "private":
+            bot.send_message(
+                chat_id,
+                "You can't use this command in group chats. Please, send in to private chat with me",
+            )
+            return
+        logs = bot.get_data(logins)
+        try:
+            _, course, login = m.text.split(" ")
+        except ValueError:
+            bot.send_message(
+                chat_id,
+                "Pleas provide command in following format (see help message): /login course login ",
+            )
+            return
 
-    r = re.compile("x[a-z]{5}[0-9]{2}")
-    answer = ""
-    if re.match(r, login) and course in course_chats.keys():
-        if re.search(r, logs):
-            link = bot.export_chat_invite_link(course_chats[course])
-            answer = f"Here is link to private group {link}"
+        r = re.compile("x[a-z]{5}[0-9]{2}")
+        answer = ""
+        if re.match(r, login) and course in course_chats.keys():
+            if re.search(r, logs):
+                link = bot.export_chat_invite_link(course_chats[course])
+                answer = f"Here is link to private group {link}"
+            else:
+                answer = "Your login is not present in system. Please, connect my admin @plov_ec"
+            bot.send_message(chat_id, answer)
         else:
-            answer = "Your login is not present in system. Please, connect my admin @plov_ec"
-        bot.send_message(chat_id, answer)
-    else:
-        if course not in course_chats.keys():
-            answer = "Sorry, I don't have chat for your course..."
-        else:
-            answer = f"Sorry, your login ({login}) is incorrect. Login should be in following format: xnovak01"
-        bot.send_message(chat_id, answer)
+            if course not in course_chats.keys():
+                answer = "Sorry, I don't have chat for your course..."
+            else:
+                answer = f"Sorry, your login ({login}) is incorrect. Login should be in following format: xnovak01"
+            bot.send_message(chat_id, answer)
+    except Exception as e:
+        bot.send_message(chat_id, "Sorry, unexpected situation si acuired, I will contact admin :(")
+        bot.send_message(
+            bot.my_chat_id,
+            f"Here is error while login.\nInput: {m.text}\nOutput: {e}",
+        )
 
 
 @bot.message_handler(commands=["help"])
