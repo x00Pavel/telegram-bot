@@ -1,6 +1,7 @@
 import json
 import hashlib
 from bot import Bot
+import re
 from telebot import types
 
 # import re
@@ -9,14 +10,21 @@ posts_file = "posts.json"
 idea_file = "ideas.txt"
 qa_file = "qa.json"
 channel_id = "@vut_fit"
-tmp = None
+logins = "logins.txt"
 bot = Bot()
+
+course_chats = {"1": "-224333264", "2": "-436441135", "3": "-383480234"}
 
 msgs = {
     "start": "I'm helper bot for channel t.me/vut_fit. "
+    "If you are a student, pleas use command /login "
+    "and provide your course with FIT login (example you are on the 1st "
+    "course and your login xnovak01: /login 1 xnovak01). "
+    "On error or unexpected behaviour, please contact admin@plov_ec"
     "Here is my command that can help you:",
     "help": "/help - print help message\n"
     "/start - print hello message with help message\n"
+    "/login course login - login into chat of correnspoding course with your login"
     "/all posts | streams - to show all usefull posts in channel or all streams \n"
     "/help_me question - if you have any question, please use this "
     "command. It is needed to create bank of questions for every one. Thank:)\n"
@@ -43,7 +51,7 @@ def start(msg):
     if hasattr(user, "username") and user.username is not None:
         name = name + f" (@{user.username})"
 
-    text = f"Hello, {name}!\n{msgs['start']}\n{msgs['help']}"
+    text = f"""Hello, {name}!\n{msgs['start']}\n{msgs['help']}"""
     bot.reply_to(msg, text)
 
 
@@ -54,6 +62,42 @@ def start(msg):
 def on_user_joins(msg):
     for _ in msg.new_chat_members:
         start(msg)
+
+
+@bot.message_handler(commands=["login"])
+def login(m):
+    chat_id = m.chat.id
+    if m.chat.type != "private":
+        bot.send_message(
+            chat_id,
+            "You can't use this command in group chats. Please, send in to private chat with me",
+        )
+        return
+    logs = bot.get_data(logins)
+    try:
+        _, course, login = m.text.split(" ")
+    except ValueError:
+        bot.send_message(
+            chat_id,
+            "Pleas provide command in following format (see help message): /login course login ",
+        )
+        return
+
+    r = re.compile("x[a-z]{5}[0-9]{2}")
+    answer = ""
+    if re.match(r, login) and course in course_chats.keys():
+        if re.search(r, logs):
+            link = bot.export_chat_invite_link(course_chats[course])
+            answer = f"Here is link to private group {link}"
+        else:
+            answer = "Your login is not present in system. Please, connect my admin @plov_ec"
+        bot.send_message(chat_id, answer)
+    else:
+        if course not in course_chats.keys():
+            answer = "Sorry, I don't have chat for your course..."
+        else:
+            answer = f"Sorry, your login ({login}) is incorrect. Login should be in following format: xnovak01"
+        bot.send_message(chat_id, answer)
 
 
 @bot.message_handler(commands=["help"])
@@ -106,7 +150,7 @@ def idea(message):
     # If user have any idea how to improve or what he want to add to bot
     data = bot.get_data(idea_file)
     idea = message.text.split("/idea ")[1]
-    data["ideas"].append({"from": message.chat.username, "idea": idea})
+    # data["ideas"].append({"from": message.chat.username, "idea": idea})
     bot.send_message(
         bot.my_chat_id,
         f"There is new idea!\nFrom: {message.chat.username}\nIdea: {idea}",
