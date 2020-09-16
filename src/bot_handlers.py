@@ -11,7 +11,6 @@ idea_file = "ideas.txt"
 qa_file = "qa.json"
 channel_id = "@vut_fit"
 logins = "logins.txt"
-tmp = None
 bot = Bot()
 
 course_chats = {"1": "-224333264", "2": "-436441135", "3": "-383480234"}
@@ -20,7 +19,8 @@ msgs = {
     "start": "I'm helper bot for channel t.me/vut_fit. "
     "If you are a student, pleas use command /login "
     "and provide your course with FIT login (example you are on the 1st "
-    "course and your login xnovak01: /login 1 xnovak01)."
+    "course and your login xnovak01: /login 1 xnovak01). "
+    "On error or unexpected behaviour, please contact admin@plov_ec"
     "Here is my command that can help you:",
     "help": "/help - print help message\n"
     "/start - print hello message with help message\n"
