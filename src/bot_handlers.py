@@ -19,16 +19,17 @@ course_chats = {
     "3": "-1001495214504",
 }
 
+
 msgs = {
     "start": "I'm helper bot for channel t.me/vut_fit. "
     "If you are a student, pleas use command /login "
     "and provide your course with FIT login (example you are on the 1st "
     "course and your login xnovak01: /login 1 xnovak01). "
-    "On error or unexpected behaviour, please contact admin @plov_ec. "
+    "On error or unexpected behaviour, please contact admin @plov_ec "
     "Here is my command that can help you:",
     "help": "/help - print help message\n"
     "/start - print hello message with help message\n"
-    "/login course login - login into chat of correnspoding course with your login"
+    "/login course login - login into chat of correnspoding course with your login\n"
     "/all posts | streams - to show all usefull posts in channel or all streams \n"
     "/help_me question - if you have any question, please use this "
     "command. It is needed to create bank of questions for every one. Thank:)\n"
@@ -56,7 +57,6 @@ def start(msg):
         name = name + f" (@{user.username})"
 
     text = f"""Hello, {name}!\n{msgs['start']}\n{msgs['help']}"""
-    print(msg.chat.id)
     bot.reply_to(msg, text)
 
 
@@ -105,6 +105,7 @@ def login(m):
                 answer = f"Sorry, your login ({login}) is incorrect. Login should be in following format: xnovak01"
             bot.send_message(chat_id, answer)
     except Exception as e:
+        bot.send_message(chat_id, "Sorry, unexpected situation si acuired, I will contact admin :(")
         bot.send_message(
             bot.my_chat_id,
             f"Here is error while login.\nInput: {m.text}\nOutput: {e}",
