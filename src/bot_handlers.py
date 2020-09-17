@@ -121,17 +121,24 @@ def help_msg(msg):
 def all_usefull(msg):
     try:
         # Here would be raised IndexError, if there is any type
-        tipe = msg.text.split(" ")[1]
-        if tipe == "стримы":
-            tipe = "streams"
-        elif tipe == "посты":
-            tipe = "posts"
-        # And here would be raised KeyError, if type is incorrect
-        data = bot.get_data(posts_file)[tipe]
-        text = "\n".join(
-            [f"{link} - {description}" for link, description in data]
-        )
-        bot.send_message(msg.chat.id, f"All {tipe}:\n{text}")
+        tipe = msg.text.split(" ")
+        answer = ""
+        if len(tipe) == 0:
+            all_streams = bot.get_data(posts_file)["streams"]
+            all_posts = bot.get_data(posts_file)["posts"]
+            answer = text = "\n".join(
+            [f"{link} - {description}" for link, description in all_streams] + [f"{link} - {description}" for link, description in all_posts])
+        else:   
+            if tipe == "стримы":
+                tipe = "streams"
+            elif tipe == "посты":
+                tipe = "posts"
+            # And here would be raised KeyError, if type is incorrect
+            data = bot.get_data(posts_file)[tipe]
+            answer = "\n".join(
+                [f"{link} - {description}" for link, description in data]
+            )
+        bot.send_message(msg.chat.id, f"All usefull info:\n{answer}")
     except (IndexError, KeyError) as e:
         bot.send_message(bot.my_chat_id, f"Input: {msg.text}\nOutput: {e}")
         bot.send_message(msg.chat.id, "Invalid type")
