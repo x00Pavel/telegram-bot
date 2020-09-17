@@ -123,7 +123,7 @@ def all_usefull(msg):
         # Here would be raised IndexError, if there is any type
         tipe = msg.text.split(" ")
         answer = ""
-        if len(tipe) == 0:
+        if len(tipe) == 1:
             all_streams = bot.get_data(posts_file)["streams"]
             all_posts = bot.get_data(posts_file)["posts"]
             answer = text = "\n".join(
