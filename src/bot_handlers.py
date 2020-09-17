@@ -128,7 +128,8 @@ def all_usefull(msg):
             all_posts = bot.get_data(posts_file)["posts"]
             answer = text = "\n".join(
             [f"{link} - {description}" for link, description in all_streams] + [f"{link} - {description}" for link, description in all_posts])
-        else:   
+        else:
+            tipe = tipe[1]
             if tipe == "стримы":
                 tipe = "streams"
             elif tipe == "посты":
